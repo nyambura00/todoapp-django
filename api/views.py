@@ -9,6 +9,8 @@ from rest_framework.authtoken.models import Token
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+from django.contrib.auth import authenticate
+
 # ListAPIView is a built-in generic class which creates a
 # read-only endpoint for model instances
 class TodoListCreate(generics.ListCreateAPIView):
@@ -63,3 +65,22 @@ def signup(request):
             return JsonResponse(
                 {'error':'username exists. choose another username'},
                 status=400)
+
+@csrf_exempt
+def login(request):
+    if request.method == 'POST':
+        data = JSONParser().parse(request)
+        user = authenticate(
+            request,
+            username=data['username'],
+            password=data['password'])
+    if user is None:
+        return JsonResponse(
+            {'error':'unable to login. re-check username and password'},
+            status=400)
+    else: # return user token
+        try:
+            token = Token.objects.get(user=user)
+        except: # if token not in db, create a new one
+            token = Token.objects.create(user=user)
+        return JsonResponse({'token':str(token)}, status=200)
